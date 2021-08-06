@@ -2,6 +2,7 @@ const StubERC20 = artifacts.require("StubERC20");
 const Mooniswap = artifacts.require("Mooniswap");
 const MooniswapFactoryGovernance = artifacts.require("MooniswapFactoryGovernance");
 const FarmingRewards = artifacts.require("FarmingRewards");
+const { time } = require('@openzeppelin/test-helpers')
 
 async function deployToken(name, sym, supply, owner) {
     const token = await StubERC20.new(name, sym, supply, { from: owner });
@@ -13,7 +14,7 @@ async function deployToken(name, sym, supply, owner) {
 
 async function deployPoolAndRewards(owner, token0, token1, giftToken, distribution, duration, scale) {
     const factory = await MooniswapFactoryGovernance.new(
-        '0x0000000000000000000000000000000000000000',   // Do not care just yet
+        '0x0000000000000000000000000000000000000000', // Do not care just yet
         { from: owner }
     );
 
@@ -22,8 +23,7 @@ async function deployPoolAndRewards(owner, token0, token1, giftToken, distributi
         token1.address,
         "stETH-DAI Liquidity Pool Token",
         "LP",
-        factory.address,
-        { from: owner }
+        factory.address, { from: owner }
     );
 
     assert.equal((await pool.token0()).valueOf(), token0.address);
@@ -34,8 +34,7 @@ async function deployPoolAndRewards(owner, token0, token1, giftToken, distributi
         giftToken.address,
         duration,
         distribution,
-        scale,
-        { from: owner }
+        scale, { from: owner }
     );
 
     return [pool, rewards];
@@ -146,8 +145,21 @@ async function withdrawLiquidityFromPool(user, pool, t0, t1) {
     assert.equal(t1UserBalanceAfter, t1UserBalanceBefore + t1PoolBalanceBefore - t1PoolBalanceAfter);
 }
 
+async function startNextRewardsPeriod(rewardsManager, ldoToken, ldoOwner) {
+    rewardsManager.start_next_rewards_period();
+}
+
+async function claimRewards(rewardsContract, ldoToken, liquidityProvider) {
+    time.increase(time.duration.weeks(1));
+    const liquidityProviderBalanceBefore = (await ldoToken.balanceOf(liquidityProvider)).toNumber();
+    rewardsContract.getAllRewards();
+    const liquidityProviderBalance = (await ldoToken.balanceOf(liquidityProvider)).toNumber();
+    assert.equal(liquidityProviderBalanceBefore, 0);
+    assert.equal(liquidityProviderBalance, 100);
+}
+
 describe('Flow', () => {
-    it('Simulate', async () => {
+    it('Simulate', async() => {
         const accounts = await web3.eth.getAccounts();
 
         const [ldoOwner, inchOwner, daiOwner, stEthOwner, stEthDaiPoolOwner, liquidityProvider] = accounts;
@@ -162,8 +174,8 @@ describe('Flow', () => {
             daiToken,
             inchToken,
             inchOwner,
-            1000,   // Not sure about this
-            100     // Not sure about this
+            1000, // Not sure about this
+            100 // Not sure about this
         );
 
         /**
@@ -195,6 +207,10 @@ describe('Flow', () => {
          * User stakes obtained LP tokens to rewards contract.
          */
         await stakeToRewards(liquidityProvider, stEthDaiPool, rewardsContract);
+
+        await startNextRewardsPeriod(rewardsManager, ldoToken, ldoOwner);
+
+        await claimRewards(rewardsContract, ldoToken, liquidityProvider);
 
         /**
          * User exits from rewarding program by withdrawing all of the LP tokens.
