@@ -1,0 +1,15 @@
+[
+  {
+    "artifactPath": "build/contracts/FarmingRewards.json",
+    "sourcePath": "contracts/Vendor.sol",
+    "name": "FarmingRewards",
+    "address": "0xd7012cDeBF10d5B352c601563aA3A8D1795A3F52",
+    "txHash": "0xe21279dec7437dd147d471ca6db3ab132d5d526145360698ab2dfde4eff82af7"
+  },
+  {
+    "artifactPath": "build/contracts/RewardsManager.json",
+    "sourcePath": "contracts/RewardsManager.vy",
+    "name": "RewardsManager",
+    "address": "0xf5436129Cf9d8fa2a1cb6e591347155276550635"
+  }
+]
